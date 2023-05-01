@@ -3,14 +3,15 @@ import os
 from itertools import product
 from typing import Any, Callable, Dict, List, Tuple
 
-from lunar_lander import CGPGymWrapper
-import gym
-from functions import sat_add, sat_sub, cgp_min, cgp_max, greater_than, sat_mul, scale_up, scale_down, multiplexor, const_float, continous_or, continous_and
-
 import cgp
+import gym
 import numpy as np
 from tqdm import tqdm
-import pickle
+
+from functions import sat_add, sat_sub, cgp_min, cgp_max, greater_than, sat_mul, scale_up, scale_down, multiplexor, \
+  continous_or, continous_and
+from lunar_lander import CGPGymWrapper
+
 
 def generate_experiments_from_settings(settings: Dict, experiment_names: List[str] = []):
   experiment_varying_vars = []
