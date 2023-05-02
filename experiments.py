@@ -52,7 +52,7 @@ def generate_experiments_from_settings(settings: Dict, experiment_names: List[st
 
 
 class Experiment:
-  def __init__(self, parents: int, n_inputs: int, n_outputs: int, n_columns: int,
+  def __init__(self, parents: int, n_inputs: int, n_outputs: int, ncolumns: int,
                n_rows: int, levelsback: int, primitives: Tuple, noffsprings: int,
                mutationrate: float, generations: int, tournament_size: float, terminal_fitness: int, fitness_share_params: Dict[Any, Any],
                experimented_values: Dict[str, Any], task_wrapper: CGPGymWrapper, use_logger: bool = True,
@@ -69,13 +69,13 @@ class Experiment:
     self.terminal_fitness = terminal_fitness
     self.genome_params = {"n_inputs": n_inputs,
                           "n_outputs": n_outputs,
-                          "n_columns": n_columns,
+                          "n_columns": ncolumns,
                           "n_rows": n_rows,
                           "levels_back": levelsback,
                           "primitives": primitives}
     self.ea_params = {"n_offsprings": noffsprings,
                       "mutation_rate": mutationrate,
-                      "n_processes": 64,
+                      "n_processes": 8,
                       "tournament_size": tournament_size,
                       **fitness_share_params}
 
@@ -171,12 +171,13 @@ class Experiment:
           f"Best fitness: {last_best}, Mutation rate: {ea._mutation_rate:.2f}, Parents: {self.pop.n_parents}")
         if solved:
           break
-    self.task_wrapper.render(self.pop.champion, True, f"{self.repetition_id}.mp4")
+    self.task_wrapper.render(self.pop.champion, True, f"ncolumns{self.experimented_values['ncolumns']}_{self.repetition_id}.mp4")
     print(cgp.CartesianGraph(self.pop.champion.genome).pretty_str())
     # with open(f"regression_actual_best_{self.experiment_name}.pkl", "wb") as f:
     #   pickle.dump(self.pop.champion, f)
     if self.end_log_function:
       self.end_log_function(self.logger, self.pop)
+      self.logger.info(f"Seed: {self.population_params['seed']}")
     return self.pop
 
   def run(self, repetitions: int):
@@ -215,7 +216,7 @@ def regression_experiments():
     "parents": 80,
     "n_outputs": 2,
     "n_inputs": 8,
-    "n_columns": 5,
+    "ncolumns": [8, 12, 16],
     "n_rows": 5,
     "levelsback": 3,
     "primitives": (
@@ -246,6 +247,7 @@ def regression_experiments():
   for experiment in experiments:
     experiment.add_end_log_function(gym_wrapper.log_end)
     experiment.run(repetitions=40)
+
 
 if __name__ == "__main__":
   regression_experiments()
