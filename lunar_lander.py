@@ -6,6 +6,9 @@ import cgp
 
 
 class CGPGymWrapper:
+    """
+    Gym wrapper for CGP. It contains objective function, envirnoment and render/log functions.
+    """
     def __init__(self, env: gym.Env):
         self.env = env
         self.max_steps = 350

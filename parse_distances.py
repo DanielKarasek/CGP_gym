@@ -1,3 +1,6 @@
+"""
+PLOTTING AND STATISTICAL ANALYSIS MODULE
+"""
 import glob
 import json
 import os
@@ -96,10 +99,9 @@ def parse_file_all_generations(file_name):
 def parse_experiment(experiment_folder: str):
   data = []
   keys = parse_functions_dictionary("{'sat_add': -1, 'sat_sub': 0, 'cgp_min': 0,"
-                                         " 'cgp_max': 0, 'greater_than': 1, 'sat_mul': 1,"
-                                         " 'scale_up': 0, 'scale_down': 0, 'continous_or': 0,"
-                                         " 'continous_and': 0, 'multiplexor': 0}".replace("'", '"')).keys()
-  print(keys)
+                                    " 'cgp_max': 0, 'greater_than': 1, 'sat_mul': 1,"
+                                    " 'scale_up': 0, 'scale_down': 0, 'continous_or': 0,"
+                                    " 'continous_and': 0, 'multiplexor': 0}".replace("'", '"')).keys()
   func2pd_dict = {key: [] for key in keys}
   for file_name in os.listdir(experiment_folder):
     keys, values, fitness, func_dict = parse_file(f"{experiment_folder}/{file_name}")
@@ -133,7 +135,6 @@ def parse_generation_line(line):
   return int(matched.group(1)), float(matched.group(2))
 
 
-
 def boxplot(df: pd.DataFrame, x: str, y: str, hue: str, title: str):
   fig = plt.figure(figsize=(8, 8))
   ax = fig.add_subplot(111)
@@ -143,9 +144,13 @@ def boxplot(df: pd.DataFrame, x: str, y: str, hue: str, title: str):
   sns.set(font_scale=1.5)
   sns.boxplot(x=x, y=y, hue=hue, data=df, ax=ax)
   ax.set_title(title)
+  fig.savefig(f"plots_and_images/{title.replace(' ', '_')}.png")
 
-
-def lineplot(df: pd.DataFrame, variable: str, error_bar):
+def lineplot(df: pd.DataFrame, variable: str, error_bar = None, title: str=""):
+  sns.set_style("whitegrid")
+  sns.set_context("paper")
+  sns.set_palette("colorblind")
+  sns.set(font_scale=1.5)
   df = df.copy(deep=True)
   fig = plt.figure(figsize=(8, 8))
   ax = fig.add_subplot(1, 1, 1)
@@ -155,8 +160,12 @@ def lineplot(df: pd.DataFrame, variable: str, error_bar):
   ax.set_ylabel("Fitness")
   # df = df[df["mutationrate"] < 0.15]
   sns.lineplot(x="generation", y="fitness", hue=variable, data=df, ax=ax, palette=pallete, errorbar=error_bar)
-  # fig.savefig(f"plots_and_images/lineplot_{variable}.png")
 
+  if not title:
+    ax.set_title(f"Lineplot of {variable}")
+  else:
+    ax.set_title(title)
+  fig.savefig(f"plots_and_images/{title.replace(' ', '_')}.png")
 
 def parse_functions_dictionary(line: str) -> Dict[str, int]:
   func_dictionary = json.loads(line)
@@ -174,34 +183,53 @@ def t_test_all(df: pd.DataFrame, variable: str):
       df2 = df[df[variable] == value2]
       res = stats.ttest_ind(df1['fitness'], df2['fitness'], equal_var=False, alternative='greater')
       print(f"{variable} {value1} {value2} {res}")
-def barplot(df: pd.DataFrame, x:str, y:str, hue:str = None, title:str = None):
-  fig = plt.figure(figsize=(12, 10))
-  ax = fig.add_subplot(111)
+
+
+def barplot(df: pd.DataFrame, x:str, y:str, hue:str = None, title: str = ""):
   sns.set_style("whitegrid")
   sns.set_context("paper")
   sns.set_palette("colorblind")
   sns.set(font_scale=1.5)
+  fig = plt.figure(figsize=(12, 10))
+  ax = fig.add_subplot(111)
   sns.barplot(x=x, y=y, hue=hue, data=df, ax=ax)
   plt.xticks(fontsize=12, rotation=45)
-  if title is None:
+  if not title:
     ax.set_title(f"Barplot of {x} and {y}")
   else:
     ax.set_title(title)
+  fig.savefig(f"plots_and_images/{title.replace(' ', '_')}.png")
 
-def countplot(df: pd.DataFrame, x:str, y:str, hue:str = None, title: str = None):
-  fig = plt.figure(figsize=(12, 10))
-  ax = fig.add_subplot(111)
+def countplot(df: pd.DataFrame, x:str, y:str, hue:str = None, title: str = ""):
   sns.set_style("whitegrid")
   sns.set_context("paper")
   sns.set_palette("colorblind")
   sns.set(font_scale=1.5)
+  fig = plt.figure(figsize=(12, 10))
+  ax = fig.add_subplot(111)
   sns.countplot(x=x, y=y, hue=hue, data=df, ax=ax)
   plt.xticks(fontsize=12, rotation=45)
-  if title is None:
+  if not title:
     ax.set_title(f"Barplot of {x} and {y}")
   else:
     ax.set_title(title)
+  fig.savefig(f"plots_and_images/{title.replace(' ', '_')}.png")
 
+
+def violinplot(df: pd.DataFrame, variable: str, title: str = ""):
+  sns.set_style("whitegrid")
+  sns.set_context("paper")
+  sns.set_palette("colorblind")
+  sns.set(font_scale=1.5)
+  fig = plt.figure(figsize=(12, 10))
+  ax = fig.add_subplot(111)
+  sns.violinplot(x=variable, y="fitness", data=df, ax=ax)
+  plt.xticks(fontsize=12, rotation=0)
+  if not title:
+    ax.set_title(f"Violinplot of {variable}")
+  else:
+    ax.set_title(title)
+  fig.savefig(f"plots_and_images/{title.replace(' ', '_')}.png")
 
 
 def nichingtype(log_dir: str):
@@ -211,12 +239,14 @@ def nichingtype(log_dir: str):
   df_all = parse_experiment_all(log_dir)
   df_all["fitness"] = df_all["fitness"].astype(float)
   df_all["fitness"] = (df_all["fitness"] - 3000)/3
-  df["nichingtype"].replace(1, "vanilla", inplace=True)
-  df["nichingtype"].replace(2, "dynamic mutation", inplace=True)
-  df["nichingtype"].replace(3, "fitness sharing", inplace=True)
-  df_all["nichingtype"].replace(1, "vanilla", inplace=True)
-  df_all["nichingtype"].replace(2, "dynamic mutation", inplace=True)
-  df_all["nichingtype"].replace(3, "fitness sharing", inplace=True)
+  df.rename({"nichingtype": "niching type"}, axis=1, inplace=True)
+  df_all.rename({"nichingtype": "niching type"}, axis=1, inplace=True)
+  df["niching type"].replace(1, "vanilla", inplace=True)
+  df["niching type"].replace(2, "dynamic mutation", inplace=True)
+  df["niching type"].replace(3, "fitness sharing", inplace=True)
+  df_all["niching type"].replace(1, "vanilla", inplace=True)
+  df_all["niching type"].replace(2, "dynamic mutation", inplace=True)
+  df_all["niching type"].replace(3, "fitness sharing", inplace=True)
   #filter out rows that have "nichingtype" == "vanilla" CANNOT use ["nichingtype" == "vanilla"]
   df_total_filtered = df[df["total functions"] != 0]
   df_total_filtered = df_total_filtered[df_total_filtered["total functions"] != 9]
@@ -224,11 +254,14 @@ def nichingtype(log_dir: str):
   df_total_filtered = df_total_filtered[df_total_filtered["total functions"] != 8]
   df_total_filtered = df_total_filtered[df_total_filtered["total functions"] != 10]
   df_total_filtered = df_total_filtered[df_total_filtered["total functions"] != 13]
-  boxplot(df_total_filtered, "nichingtype", "fitness", None, "Niching type comparison")
+  # boxplot(df_total_filtered, "nichingtype", "fitness", None, "Niching type comparison")
   boxplot(df_total_filtered, "total functions", "fitness", None, "Total functions comparison")
-  boxplot( df_total_filtered, "nichingtype", "total functions", None, "Total functions comparison")
-  barplot(df_total_filtered, "total functions", "fitness", "nichingtype")
-  countplot(df_total_filtered, "total functions", None, hue="nichingtype")
+  boxplot(df_total_filtered, "total functions", "fitness", None, "Total functions comparison")
+  violinplot(df_total_filtered, "niching type", "Niching type comparison")
+  boxplot(df_total_filtered, "niching type", "total functions", None, "Total functions per niching type")
+  # barplot(df_total_filtered, "total functions", "fitness", "niching type", "Total functions comparison")
+  # countplot(df_total_filtered, "total functions", None, hue="niching type",
+  #           title="Number of functions for different niching types")
 
   # sum all columns which are int or float and create dataframe from them
   df_func = df[df["sat_add"]!=-1]
@@ -236,32 +269,23 @@ def nichingtype(log_dir: str):
   df_func.drop(index=["fitness", "total functions"], inplace=True)
   df_func.reset_index(inplace=True)
   df_func.rename({0: "count", "index": "function name"}, axis=1, inplace=True)
-  barplot(df_func, "function name", "count")
+  barplot(df_func, "function name", "count", None, "Count of each function in all experiments")
   # lineplot(df_all, "nichingtype", error_bar=("ci", 90))
   t_test_all(df, "total functions")
-  t_test_all(df, "nichingtype")
+  t_test_all(df, "niching type")
   plt.show()
 
 
-def violinplot(df: pd.DataFrame, variable: str):
-  fig = plt.figure(figsize=(12, 10))
-  ax = fig.add_subplot(111)
-  sns.set_style("whitegrid")
-  sns.set_context("paper")
-  sns.set_palette("colorblind")
-  sns.set(font_scale=1.5)
-  sns.violinplot(x=variable, y="fitness", data=df, ax=ax)
-  plt.xticks(fontsize=12, rotation=0)
-  ax.set_title(f"Violinplot of {variable}")
 
 def lots_of_generations():
-  df_lot_gen = parse_experiment("experiment_lots_of_generations")
-  df_few_gen = parse_experiment("logs_LUNAR_LANDER_parents")
+  df_lot_gen = parse_experiment("logs/experiment_lots_of_generations")
+  df_few_gen = parse_experiment("logs/logs_LUNAR_LANDER_parents")
   df_few_gen["fitness"]= df_few_gen["fitness"].astype(float)
   df_few_gen["fitness"] = (df_few_gen["fitness"] - 3000)/3
 
   df = pd.concat([df_lot_gen, df_few_gen[df_few_gen["nichingtype"]==2]], copy=True)
   df_lot_gen_all = parse_experiment_all("experiment_lots_of_generations")
+  df_lot_gen_all = df_lot_gen_all[df_lot_gen_all["generation"]< 26]
   df_few_gen_all = parse_experiment_all("logs_LUNAR_LANDER_parents")
   df_few_gen_all["fitness"]= df_few_gen_all["fitness"].astype(float)
   df_few_gen_all["fitness"] = (df_few_gen_all["fitness"] - 3000)/3
@@ -269,41 +293,72 @@ def lots_of_generations():
   df["budget distribution"] = df["nichingtype"].copy()
 
   df["budget distribution"].replace(2, "500 gens 20 offspring", inplace=True)
-  df["budget distribution"].replace(4, "41 gens 400 offspring", inplace=True)
+  df["budget distribution"].replace(4, "26 gens 400 offspring", inplace=True)
   df_all["budget distribution"] = df_all["nichingtype"].copy()
   df_all["budget distribution"].replace(2, "500 gens 20 offspring", inplace=True)
-  df_all["budget distribution"].replace(4, "41 gens 400 offspring", inplace=True)
+  df_all["budget distribution"].replace(4, "26 gens 400 offspring", inplace=True)
   df_all.loc[df_all["nichingtype"]==2,"generation"] = df_all.loc[df_all["nichingtype"]==2,"generation"]*20
   df_all.loc[df_all["nichingtype"]==4,"generation"] = df_all.loc[df_all["nichingtype"]==4,"generation"]*400
-  df_all = df_all[df_all["generation"]<(25*400)]
+  df_all = df_all[df_all["generation"]<(26*400)]
 
 
   df["fitness"] = df["fitness"].astype(float)
-  boxplot(df, "budget distribution", "fitness", None, "Niching type comparison")
-  lineplot(df_all, "budget distribution", error_bar=("ci", 90))
+  # boxplot(df, "budget distribution", "fitness", None, "Budget distribution comparison")
+  lineplot(df_all, "budget distribution", error_bar=("ci", 90), title="Convergence curves for different budget distributions")
   df_lot_gen["budget distribution"] = df_lot_gen["nichingtype"].copy()
   df_lot_gen["budget distribution"].replace(4, "41 gens 400 offspring", inplace=True)
-  violinplot(df_lot_gen, "budget distribution")
+  violinplot(df, "budget distribution", "Budget distribution vs fitness")
   df_lot_gen_filtered = df_lot_gen[df_lot_gen["total functions"] != 9]
   df_lot_gen_filtered = df_lot_gen_filtered[df_lot_gen_filtered["total functions"] != 10]
-  barplot(df_lot_gen_filtered, "total functions", "fitness")
+  barplot(df_lot_gen_filtered, "total functions", "fitness", None, "Correlation between function count and fitness")
   plt.show()
 
-if __name__ == "__main__":
-  # VIOLIN PLOT FOR 400 generations
-  # nichingtype("logs_LUNAR_LANDER_parents")
-  # lots_of_generations()
-  # df = parse_all_files("logs_average_distance")
-  # print(df)
-  # boxplot(df, x="experiment type", y="sharing function", hue=None, title="Sharing function comparison")
-  # for file in os.listdir("experiment_lots_of_generations"):
-  #   os.rename("experiment_lots_of_generations/" + file, "experiment_lots_of_generations/" + file.replace("_re", "nichingtype_4_re"))
 
+def regulatory_function():
+  df = parse_experiment("logs/logs_regulatory_x_vanila")
+  df_all = parse_experiment_all("logs/logs_regulatory_x_vanila")
+  df["regulation"] = df["nichingtype"].copy()
+  df_all["regulation"] = df_all["nichingtype"].copy()
+  df.replace(4, "no up-regulation of function count", inplace=True)
+  df.replace(5, "up-regulation of function count", inplace=True)
+  df_all.replace(4, "no up-regulation of function count", inplace=True)
+  df_all.replace(5, "up-regulation of function count", inplace=True)
+  # boxplot(df, "regulation", "fitness", None, "Regulation comparison")
+  lineplot(df_all, "regulation", error_bar=("ci", 90), title="Convergence curves for different regulation types")
+  violinplot(df, "regulation", "Regulation type vs fitness")
   x = np.linspace(0,15, 1000)
   y = pow((x+1)/13, 3/5)
   y[np.where(x > 12)[0]] = 1
-  plt.plot(x, y)
-  plt.xlabel("Number of active functions")
-  plt.ylabel("Regulating ratio")
-  plt.title("Ratio used to upregulate more active functions")
+  fig = plt.figure(figsize=(12, 10))
+  ax = fig.add_subplot(111)
+
+  ax.plot(x, y)
+  ax.set_xlabel("Number of active functions")
+  ax.set_ylabel("Regulating ratio")
+  ax.set_title("Ratio used to upregulate more active functions")
   plt.show()
+
+
+def ncolumns():
+  df = parse_experiment("logs/logs_LUNAR_LANDER_ncolumns")
+  df_all = parse_experiment_all("logs/logs_LUNAR_LANDER_ncolumns")
+  df.rename({"ncolumns" : "number of columns"}, axis=1, inplace=True)
+  df_all.rename({"ncolumns" : "number of columns"}, axis=1, inplace=True)
+  df["number of columns"] = df["number of columns"].astype(int)
+  df_all["number of columns"] = df_all["number of columns"].astype(int)
+
+  # boxplot(df, "number of columns", "fitness", None, "Number of columns comparison")
+  lineplot(df_all, "number of columns", error_bar=("ci", 90), title="Convergence curves for different number of columns")
+  violinplot(df, "number of columns", "Number of columns vs fitness")
+  plt.show()
+
+
+if __name__ == "__main__":
+  pass
+  # nichingtype("logs/logs_LUNAR_LANDER_parents")
+  # lots_of_generations()
+  # ncolumns()
+  # regulatory_function()
+
+  # for file in os.listdir("logs_LUNAR_LANDER_ncolumns"):
+  #   os.rename("logs_LUNAR_LANDER_ncolumns/" + file, "logs_LUNAR_LANDER_ncolumns/" + file.replace("nichingtype_5", "ncolumns_5"))

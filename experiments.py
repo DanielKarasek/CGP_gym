@@ -14,6 +14,20 @@ from lunar_lander import CGPGymWrapper
 
 
 def generate_experiments_from_settings(settings: Dict, experiment_names: List[str] = []):
+  """
+  Generates experiments from a dictionary of settings. The settings contain values for
+  CGP and experiment class. If any value is a list it will be considered as a parameter to be varied
+  (different experiments will be generated). Maximum of 2 parameters can be varied at the same time.
+  Parameters
+  ----------
+  settings - Dictinary of settings for both the CGP and my own external params, such as use of logger
+  experiment_names - List of names for individual experiments if not provided,
+  a default name will be used. len(experiment_names) must be equal to number of generated experiments.
+
+  Returns - Generator of experiments
+  -------
+
+  """
   experiment_varying_vars = []
   for key, value in settings.items():
     if isinstance(value, list):
@@ -52,6 +66,9 @@ def generate_experiments_from_settings(settings: Dict, experiment_names: List[st
 
 
 class Experiment:
+  """
+  Encapsulates single CGP experiment with additional functionality such as dynamic mutation rate.
+  """
   def __init__(self, parents: int, n_inputs: int, n_outputs: int, ncolumns: int,
                n_rows: int, levelsback: int, primitives: Tuple, noffsprings: int,
                mutationrate: float, generations: int, tournament_size: float, terminal_fitness: int, fitness_share_params: Dict[Any, Any],
@@ -75,7 +92,7 @@ class Experiment:
                           "primitives": primitives}
     self.ea_params = {"n_offsprings": noffsprings,
                       "mutation_rate": mutationrate,
-                      "n_processes": 8,
+                      "n_processes": 64,
                       "tournament_size": tournament_size,
                       **fitness_share_params}
 
@@ -91,7 +108,7 @@ class Experiment:
     self.end_log_function = end_log_function
 
   def _init_logger(self):
-    file_path = f"./logs_{self.experiment_type}"
+    file_path = f"./logs/logs_{self.experiment_type}"
     for key in self.experimented_values.keys():
       file_path = f"{file_path}_{key}"
     try:
@@ -125,6 +142,12 @@ class Experiment:
       self.logger.info(f"Generation: {self.pop.generation} Best fitness: {best_fitness}")
 
   def _run(self) -> cgp.Population:
+    """
+    Runs a single experiment with all loggin printing and mutation rate adjustment
+    Returns the final population
+    -------
+
+    """
     self.population_params["seed"] = np.random.randint(1e7)
     self.pop = cgp.Population(**self.population_params, genome_params=self.genome_params)
     ea = cgp.ea.MuPlusLambda(**self.ea_params, repetition_id = self.repetition_id)
@@ -171,7 +194,7 @@ class Experiment:
           f"Best fitness: {last_best}, Mutation rate: {ea._mutation_rate:.2f}, Parents: {self.pop.n_parents}")
         if solved:
           break
-    self.task_wrapper.render(self.pop.champion, True, f"ncolumns{self.experimented_values['ncolumns']}_{self.repetition_id}.mp4")
+    self.task_wrapper.render(self.pop.champion, True, f"videos/ncolumns{self.experimented_values['ncolumns']}_{self.repetition_id}.mp4")
     print(cgp.CartesianGraph(self.pop.champion.genome).pretty_str())
     # with open(f"regression_actual_best_{self.experiment_name}.pkl", "wb") as f:
     #   pickle.dump(self.pop.champion, f)
@@ -181,6 +204,16 @@ class Experiment:
     return self.pop
 
   def run(self, repetitions: int):
+    """
+    Runs whole set of experiments
+    Parameters
+    ----------
+    repetitions : int number of total repetitions
+
+    Returns
+    -------
+
+    """
     for repetition in range(repetitions):
       self.repetition_id = repetition
       if self.use_logger:
@@ -216,7 +249,7 @@ def regression_experiments():
     "parents": 80,
     "n_outputs": 2,
     "n_inputs": 8,
-    "ncolumns": [8, 12, 16],
+    "ncolumns": [16],
     "n_rows": 5,
     "levelsback": 3,
     "primitives": (
@@ -246,7 +279,7 @@ def regression_experiments():
 
   for experiment in experiments:
     experiment.add_end_log_function(gym_wrapper.log_end)
-    experiment.run(repetitions=40)
+    experiment.run(repetitions=2)
 
 
 if __name__ == "__main__":
